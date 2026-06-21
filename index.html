@@ -1,0 +1,1379 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Árbol de Lógica — ACR/RCA</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f1f5f9; color: #1e293b; overflow: hidden; height: 100vh; }
+
+/* ─── HEADER ─── */
+.app-header {
+  background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+  color: white;
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+  height: 62px;
+  flex-shrink: 0;
+}
+.app-header .title-block h1 { font-size: 1rem; font-weight: 700; letter-spacing: -0.01em; }
+.app-header .title-block p { font-size: 0.7rem; opacity: 0.75; margin-top: 2px; }
+.header-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+.btn {
+  padding: 6px 13px; border: none; border-radius: 6px;
+  font-size: 0.78rem; font-weight: 600; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 5px;
+  transition: filter 0.15s, transform 0.1s;
+  line-height: 1;
+}
+.btn:hover { filter: brightness(1.12); }
+.btn:active { transform: scale(0.97); }
+.btn-green { background: #15803d; color: #fff; }
+.btn-blue  { background: #1d4ed8; color: #fff; }
+.btn-slate { background: #475569; color: #fff; }
+.btn-red   { background: #dc2626; color: #fff; }
+.btn-orange { background: #d97706; color: #fff; }
+
+/* ─── TABS ─── */
+.tabs {
+  background: #1e3a8a;
+  display: flex;
+  padding: 0 16px;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+.tab-btn {
+  background: none; border: none; color: rgba(255,255,255,0.6);
+  padding: 9px 18px; font-size: 0.82rem; cursor: pointer;
+  border-bottom: 3px solid transparent; font-weight: 500;
+  transition: all 0.2s; white-space: nowrap;
+}
+.tab-btn.active { color: white; border-bottom-color: #60a5fa; background: rgba(255,255,255,0.08); }
+.tab-btn:hover:not(.active) { color: rgba(255,255,255,0.9); }
+
+/* ─── LAYOUT ─── */
+.app-body { display: flex; flex-direction: column; height: calc(100vh - 62px - 38px); }
+.panel { display: none; flex: 1; overflow: auto; }
+.panel.active { display: flex; flex-direction: column; }
+
+/* ─── DATOS PANEL ─── */
+.datos-panel { padding: 20px; max-width: 960px; margin: 0 auto; width: 100%; }
+.datos-panel h2 {
+  font-size: 0.78rem; font-weight: 700; color: #64748b;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  margin-bottom: 14px; padding-bottom: 8px; border-bottom: 2px solid #e2e8f0;
+}
+.datos-card {
+  background: white; border-radius: 10px;
+  padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+.datos-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+.form-group label {
+  display: block; font-size: 0.68rem; font-weight: 700;
+  color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+.form-group input, .form-group textarea, .form-group select {
+  width: 100%; padding: 7px 10px;
+  border: 1px solid #e2e8f0; border-radius: 6px;
+  font-size: 0.84rem; color: #1e293b; background: #f8fafc;
+  font-family: inherit;
+}
+.form-group input:focus, .form-group textarea:focus {
+  outline: none; border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+  background: #fff;
+}
+.span-2 { grid-column: span 2; }
+.span-3 { grid-column: span 3; }
+
+/* ─── ÁRBOL PANEL ─── */
+.arbol-layout {
+  display: flex; flex: 1; overflow: hidden;
+}
+
+/* Sidebar */
+.node-sidebar {
+  width: 230px; background: white;
+  border-right: 1px solid #e2e8f0;
+  display: flex; flex-direction: column;
+  flex-shrink: 0; overflow: hidden;
+}
+.sidebar-header {
+  padding: 12px 14px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 0.68rem; font-weight: 700;
+  color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;
+}
+.sidebar-body { padding: 14px; overflow-y: auto; flex: 1; }
+.sidebar-empty { color: #94a3b8; font-size: 0.8rem; text-align: center; padding: 30px 10px; line-height: 1.5; }
+.sidebar-empty svg { display: block; margin: 0 auto 10px; opacity: 0.4; }
+
+.node-badge {
+  display: block; padding: 4px 10px; border-radius: 5px;
+  font-size: 0.72rem; font-weight: 700; margin-bottom: 12px;
+  text-align: center;
+}
+.form-label-sm {
+  font-size: 0.67rem; font-weight: 700; color: #64748b;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  display: block; margin-bottom: 4px;
+}
+.sidebar-textarea {
+  width: 100%; min-height: 72px; padding: 7px 8px;
+  border: 1px solid #e2e8f0; border-radius: 6px;
+  font-size: 0.8rem; resize: vertical; margin-bottom: 10px;
+  color: #1e293b; background: #f8fafc; font-family: inherit;
+}
+.sidebar-textarea:focus { outline: none; border-color: #3b82f6; background: #fff; }
+
+.check-row {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 0.76rem; color: #475569; font-weight: 500;
+  cursor: pointer; margin-bottom: 8px; user-select: none;
+}
+.check-row input[type=checkbox] { width: 14px; height: 14px; cursor: pointer; }
+
+.sidebar-divider { border: none; border-top: 1px solid #e2e8f0; margin: 10px 0; }
+.action-btn {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  width: 100%; padding: 7px; border-radius: 6px; border: none;
+  font-size: 0.77rem; font-weight: 600; cursor: pointer;
+  margin-bottom: 5px; transition: filter 0.15s;
+}
+.action-btn:hover { filter: brightness(1.1); }
+
+/* Canvas */
+.canvas-area {
+  flex: 1; overflow: hidden; position: relative;
+  background:
+    radial-gradient(circle, #cbd5e1 1px, transparent 1px) 0 0 / 28px 28px,
+    #f1f5f9;
+}
+#tree-svg {
+  width: 100%; height: 100%;
+  cursor: grab; user-select: none;
+}
+#tree-svg:active { cursor: grabbing; }
+
+/* Zoom controls */
+.zoom-controls {
+  position: absolute; top: 12px; right: 12px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.zoom-btn {
+  width: 32px; height: 32px; border: none;
+  background: white; color: #475569;
+  border-radius: 6px; font-size: 1.1rem; cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; transition: background 0.15s;
+}
+.zoom-btn:hover { background: #f1f5f9; }
+
+/* Legend */
+.legend {
+  position: absolute; bottom: 14px; right: 14px;
+  background: white; border-radius: 8px;
+  padding: 10px 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  font-size: 0.72rem;
+}
+.legend h4 { font-size: 0.65rem; text-transform: uppercase; color: #64748b; letter-spacing: 0.06em; margin-bottom: 7px; }
+.legend-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; color: #475569; }
+.leg-rect { width: 22px; height: 13px; border-radius: 3px; flex-shrink: 0; }
+.leg-circle { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+
+/* Status bar */
+#status-bar {
+  position: absolute; bottom: 14px; left: 14px;
+  background: rgba(30,64,175,0.9); color: white;
+  padding: 5px 12px; border-radius: 6px; font-size: 0.73rem;
+  opacity: 0; transition: opacity 0.3s; pointer-events: none;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+/* ─── TUTORIAL PANEL ─── */
+.tutorial-panel { padding: 24px; max-width: 820px; margin: 0 auto; width: 100%; }
+.tutorial-panel h2 { font-size: 1.15rem; color: #1e40af; margin-bottom: 6px; }
+.tutorial-panel .subtitle { color: #64748b; font-size: 0.84rem; margin-bottom: 20px; }
+.tutorial-intro {
+  background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px;
+  padding: 14px 16px; margin-bottom: 20px; font-size: 0.83rem;
+  color: #1e40af; line-height: 1.55;
+}
+.tutorial-step {
+  display: flex; gap: 14px; margin-bottom: 14px;
+  background: white; padding: 14px 16px; border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+  border-left: 3px solid transparent;
+}
+.tutorial-step:nth-child(2) { border-left-color: #dc2626; }
+.tutorial-step:nth-child(3) { border-left-color: #dc2626; }
+.tutorial-step:nth-child(4) { border-left-color: #16a34a; }
+.tutorial-step:nth-child(5) { border-left-color: #3b82f6; }
+.tutorial-step:nth-child(6) { border-left-color: #dc2626; }
+.tutorial-step:nth-child(7) { border-left-color: #f97316; }
+.tutorial-step:nth-child(8) { border-left-color: #7c3aed; }
+.step-num {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: #1e40af; color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 0.85rem; flex-shrink: 0;
+}
+.step-content h3 { font-size: 0.88rem; margin-bottom: 5px; color: #1e293b; }
+.step-content p { font-size: 0.8rem; color: #475569; line-height: 1.55; }
+.chip {
+  display: inline-flex; align-items: center;
+  padding: 1px 8px; border-radius: 4px;
+  font-size: 0.72rem; font-weight: 700; vertical-align: middle;
+}
+.tutorial-tip {
+  background: #f0fdf4; border: 1px solid #86efac; border-radius: 10px;
+  padding: 14px 16px; font-size: 0.81rem; color: #15803d; margin-top: 10px;
+  line-height: 1.55;
+}
+
+/* ─── CONCLUSIONES PANEL ─── */
+.concl-panel { padding: 24px; max-width: 860px; margin: 0 auto; width: 100%; }
+.concl-panel h2 { font-size: 1.05rem; color: #1e40af; margin-bottom: 14px; }
+.concl-section {
+  background: white; border-radius: 10px; padding: 18px 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.07); margin-bottom: 16px;
+  border-left: 4px solid #1e40af;
+}
+.concl-section h3 {
+  font-size: 0.82rem; font-weight: 700; color: #64748b;
+  text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px;
+}
+.concl-section textarea {
+  width: 100%; padding: 9px 11px; border: 1px solid #e2e8f0;
+  border-radius: 7px; font-size: 0.85rem; font-family: inherit;
+  color: #1e293b; background: #f8fafc; resize: vertical;
+}
+.concl-section textarea:focus {
+  outline: none; border-color: #3b82f6; background: #fff;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+}
+.concl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.concl-causes-list { list-style: none; }
+.concl-causes-list li {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 6px 0; border-bottom: 1px solid #f1f5f9;
+  font-size: 0.82rem; color: #374151;
+}
+.cause-dot {
+  width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 4px;
+}
+.add-cause-btn {
+  background: none; border: 1px dashed #cbd5e1; border-radius: 6px;
+  color: #94a3b8; font-size: 0.78rem; padding: 5px 10px;
+  cursor: pointer; width: 100%; margin-top: 8px;
+}
+.add-cause-btn:hover { border-color: #3b82f6; color: #3b82f6; }
+
+/* ─── PRINT ─── */
+@media screen {
+  #print-document { display: none; }
+}
+
+@media print {
+  /* Ocultar TODO la app en pantalla */
+  body > * { display: none !important; }
+  /* Mostrar solo el documento de impresión */
+  #print-document { display: block !important; }
+
+  @page { size: A3 portrait; margin: 1.5cm; }
+  @page :first { margin-top: 1.5cm; }
+
+  .print-page {
+    page-break-after: always;
+    page-break-inside: avoid;
+  }
+  .print-page:last-child { page-break-after: auto; }
+
+  /* Estilos dentro del documento impreso */
+  #print-document { font-family: 'Segoe UI', sans-serif; color: #1e293b; }
+
+  .print-header {
+    background: #1e3a8a !important; -webkit-print-color-adjust: exact;
+    print-color-adjust: exact; color: white; padding: 18px 24px; margin-bottom: 24px;
+    border-radius: 8px;
+  }
+  .print-header h1 { font-size: 15pt; margin-bottom: 4px; }
+  .print-header p  { font-size: 9pt; opacity: 0.8; }
+
+  .print-section-title {
+    font-size: 9pt; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.06em; color: #64748b; border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 6px; margin-bottom: 14px;
+  }
+  .print-datos-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px;
+  }
+  .print-field label { display: block; font-size: 7.5pt; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 2px; }
+  .print-field span  { font-size: 9.5pt; color: #1e293b; }
+  .print-field.span2 { grid-column: span 2; }
+  .print-field.span3 { grid-column: span 3; }
+
+  .print-svg-container { width: 100%; }
+  .print-svg-container svg { width: 100%; height: auto; }
+
+  .print-concl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .print-concl-box { border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px; }
+  .print-concl-box h4 { font-size: 8.5pt; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 8px; }
+  .print-concl-box p  { font-size: 9pt; color: #374151; line-height: 1.5; white-space: pre-wrap; }
+  .print-concl-full   { border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px; margin-bottom: 12px; }
+  .print-concl-full h4 { font-size: 8.5pt; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 8px; }
+  .print-concl-full p  { font-size: 9pt; color: #374151; line-height: 1.5; white-space: pre-wrap; }
+
+  .print-causes-table { width: 100%; border-collapse: collapse; font-size: 9pt; }
+  .print-causes-table th { background: #f1f5f9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    padding: 6px 10px; text-align: left; font-size: 8pt; font-weight: 700; color: #475569; border: 1px solid #e2e8f0; }
+  .print-causes-table td { padding: 6px 10px; border: 1px solid #e2e8f0; vertical-align: top; }
+  .print-causes-table tr:nth-child(even) td { background: #f8fafc !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  .dot-fisica  { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #dc2626 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .dot-humana  { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #f97316 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .dot-latente { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #7c3aed !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  .print-footer {
+    margin-top: 20px; padding-top: 10px; border-top: 1px solid #e2e8f0;
+    font-size: 7.5pt; color: #94a3b8; display: flex; justify-content: space-between;
+  }
+  .print-sign-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; margin-top: 24px; }
+  .print-sign-box { border-top: 1px solid #475569; padding-top: 6px; }
+  .print-sign-box .label { font-size: 7.5pt; color: #64748b; }
+  .print-sign-box .name  { font-size: 9pt; font-weight: 600; margin-top: 2px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ HEADER ══ -->
+<header class="app-header">
+  <div class="title-block">
+    <h1>Árbol de Lógica — Análisis Causa Raíz (ACR/RCA)</h1>
+    <p>Definición del Problema · Modos de Fallo · Hipótesis · Raíces Físicas · Humanas · Latentes &nbsp;|&nbsp; IEC 62740:2015</p>
+  </div>
+  <div class="header-btns">
+    <button class="btn btn-green"  onclick="saveJSON()">💾 Guardar</button>
+    <button class="btn btn-blue"   onclick="triggerLoad()">📂 Cargar</button>
+    <input type="file" id="file-input" accept=".json" style="display:none" onchange="loadJSON(event)">
+    <button class="btn btn-blue"   onclick="exportPNG()">📷 PNG</button>
+    <button class="btn btn-slate"  onclick="printTree()">🖨️ Imprimir A3</button>
+    <button class="btn btn-red"    onclick="clearAll()">🗑️ Limpiar</button>
+  </div>
+</header>
+
+<!-- ══ TABS ══ -->
+<nav class="tabs">
+  <button class="tab-btn active" onclick="showTab('datos', this)">📋 Datos del Análisis</button>
+  <button class="tab-btn"        onclick="showTab('arbol', this)">🌳 Árbol de Lógica</button>
+  <button class="tab-btn"        onclick="showTab('conclusiones', this)">📝 Conclusiones</button>
+  <button class="tab-btn"        onclick="showTab('tutorial', this)">📖 Cómo Usar</button>
+</nav>
+
+<div class="app-body">
+
+<!-- ══ PANEL: DATOS ══ -->
+<div id="panel-datos" class="panel active" style="display:flex;">
+  <div class="datos-panel">
+    <h2>Datos del Análisis</h2>
+    <div class="datos-card">
+      <div class="datos-grid">
+        <div class="form-group span-2">
+          <label>Sistema / Equipo</label>
+          <input type="text" id="d-sistema" placeholder="Ej: Compresor Centrífugo TC-2 — Planta Sara">
+        </div>
+        <div class="form-group">
+          <label>Ref. Documento</label>
+          <input type="text" id="d-ref" placeholder="Ej: ACR-ENAP-001">
+        </div>
+        <div class="form-group span-3">
+          <label>Definición del Problema — QUÉ ocurrió</label>
+          <textarea id="d-problema" rows="2"
+            placeholder="Ej: Fallo recurrente del rodamiento del compresor centrífugo TC-2. Alto nivel de vibración y temperatura."
+            oninput="updateProblemNode()"></textarea>
+        </div>
+        <div class="form-group">
+          <label>¿Cuándo? — Fecha / Condición</label>
+          <input type="text" id="d-cuando" placeholder="Ej: 28/07/2025 @ 4:32 pm">
+        </div>
+        <div class="form-group">
+          <label>¿Dónde? — Ubicación</label>
+          <input type="text" id="d-donde" placeholder="Ej: Área compresores > TC-2">
+        </div>
+        <div class="form-group">
+          <label>Frecuencia</label>
+          <input type="text" id="d-frecuencia" placeholder="Ej: 3× en 2024, 2× en 2023">
+        </div>
+        <div class="form-group">
+          <label>Impacto — Seguridad</label>
+          <input type="text" id="d-imp-seg" placeholder="Ej: Potencialmente peligroso">
+        </div>
+        <div class="form-group">
+          <label>Impacto — Producción</label>
+          <input type="text" id="d-imp-prod" placeholder="Ej: 4 hrs parada, US$ 22.000">
+        </div>
+        <div class="form-group">
+          <label>Impacto — Mantenimiento</label>
+          <input type="text" id="d-imp-mant" placeholder="Ej: US$ 4.000">
+        </div>
+        <div class="form-group">
+          <label>Elaborado Por</label>
+          <input type="text" id="d-elaborado">
+        </div>
+        <div class="form-group">
+          <label>Revisado Por</label>
+          <input type="text" id="d-revisado">
+        </div>
+        <div class="form-group">
+          <label>Fecha</label>
+          <input type="date" id="d-fecha">
+        </div>
+        <div class="form-group">
+          <label>Rev.</label>
+          <input type="text" id="d-rev" value="Rev. 0">
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:14px;padding:12px 16px;background:white;border-radius:8px;border-left:4px solid #1e40af;font-size:0.81rem;color:#475569;box-shadow:0 1px 3px rgba(0,0,0,0.07);">
+      <strong style="color:#1e293b;">Siguiente paso:</strong> Complete los datos anteriores y luego abra la pestaña <strong>"Árbol de Lógica"</strong> para construir el árbol de causas raíces. El campo <em>Definición del Problema</em> actualizará automáticamente la Caja Superior del árbol.
+    </div>
+  </div>
+</div>
+
+<!-- ══ PANEL: ÁRBOL ══ -->
+<div id="panel-arbol" class="panel" style="display:none;">
+  <div class="arbol-layout">
+
+    <!-- SIDEBAR -->
+    <div class="node-sidebar">
+      <div class="sidebar-header">Nodo seleccionado</div>
+      <div class="sidebar-body">
+        <div id="sb-empty" class="sidebar-empty">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/>
+          </svg>
+          Haz clic en cualquier nodo del árbol para seleccionarlo y editar su contenido
+        </div>
+        <div id="sb-content" style="display:none;">
+          <span id="sb-badge" class="node-badge"></span>
+          <label class="form-label-sm">Texto del nodo</label>
+          <textarea id="sb-text" class="sidebar-textarea" oninput="updateNodeText()"></textarea>
+          <label class="check-row">
+            <input type="checkbox" id="sb-eliminated" onchange="toggleEliminated()">
+            Eliminado / Descartado (×)
+          </label>
+          <div id="sb-validated-row" style="display:none;">
+            <label class="check-row">
+              <input type="checkbox" id="sb-validated" onchange="toggleValidated()">
+              Hipótesis Validada (✓)
+            </label>
+          </div>
+          <hr class="sidebar-divider">
+          <div id="sb-actions"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CANVAS -->
+    <div class="canvas-area" id="canvas-area">
+      <svg id="tree-svg" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="dropshadow">
+            <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-opacity="0.18"/>
+          </filter>
+        </defs>
+        <g id="root-g">
+          <g id="lines-g"></g>
+          <g id="nodes-g"></g>
+        </g>
+      </svg>
+
+      <!-- Zoom controls -->
+      <div class="zoom-controls">
+        <button class="zoom-btn" onclick="zoom(0.12)" title="Acercar">+</button>
+        <button class="zoom-btn" onclick="zoom(-0.12)" title="Alejar">−</button>
+        <button class="zoom-btn" onclick="resetView()" title="Restablecer vista" style="font-size:0.8rem;">⊙</button>
+      </div>
+
+      <!-- Legend -->
+      <div class="legend">
+        <h4>Leyenda</h4>
+        <div class="legend-row"><div class="leg-rect" style="background:#dc2626"></div> Problema (Caja Superior)</div>
+        <div class="legend-row"><div class="leg-rect" style="background:#16a34a"></div> Modo de Fallo</div>
+        <div class="legend-row"><div class="leg-rect" style="background:#fff;border:2px solid #3b82f6"></div> Hipótesis</div>
+        <div class="legend-row"><div class="leg-circle" style="background:#dc2626"></div> Raíz Física</div>
+        <div class="legend-row"><div class="leg-circle" style="background:#f97316"></div> Raíz Humana</div>
+        <div class="legend-row"><div class="leg-circle" style="background:#7c3aed"></div> Raíz Latente</div>
+      </div>
+
+      <div id="status-bar"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PANEL: CONCLUSIONES ══ -->
+<div id="panel-conclusiones" class="panel" style="display:none; overflow:auto;">
+  <div class="concl-panel">
+    <h2>Conclusiones y Recomendaciones</h2>
+
+    <div class="concl-section" style="border-left-color:#dc2626;">
+      <h3>Resumen del Problema</h3>
+      <textarea id="c-resumen" rows="3" placeholder="Describe brevemente el problema analizado, su impacto y relevancia para la organización..."></textarea>
+    </div>
+
+    <div class="concl-grid">
+      <div class="concl-section" style="border-left-color:#dc2626;">
+        <h3>Causas Raíces Físicas identificadas</h3>
+        <textarea id="c-raices-fisicas" rows="5" placeholder="1. Grasa solidificada en el rodamiento&#10;2. Cojinete fracturado por fatiga&#10;..."></textarea>
+      </div>
+      <div class="concl-section" style="border-left-color:#f97316;">
+        <h3>Causas Raíces Humanas identificadas</h3>
+        <textarea id="c-raices-humanas" rows="5" placeholder="1. Exceso de grasa aplicada&#10;2. Grasa mal seleccionada&#10;..."></textarea>
+      </div>
+    </div>
+
+    <div class="concl-section" style="border-left-color:#7c3aed;">
+      <h3>Causas Raíces Latentes (sistémicas/organizacionales) — Las verdaderas causas raíz</h3>
+      <textarea id="c-raices-latentes" rows="4" placeholder="1. No existe procedimiento formal de lubricación&#10;2. No hay entrenamiento certificado para el engrasador&#10;3. Ausencia de programa de inspección de sellos&#10;..."></textarea>
+    </div>
+
+    <div class="concl-section" style="border-left-color:#16a34a;">
+      <h3>Recomendaciones y Plan de Acción</h3>
+      <textarea id="c-recomendaciones" rows="6" placeholder="1. [Raíz Latente 1] → Acción correctiva / preventiva → Responsable → Plazo&#10;2. [Raíz Latente 2] → ...&#10;&#10;Priorizar las acciones según evaluación Costo-Riesgo-Beneficio (CRB)."></textarea>
+    </div>
+
+    <div class="concl-grid">
+      <div class="concl-section" style="border-left-color:#0284c7;">
+        <h3>Lecciones Aprendidas</h3>
+        <textarea id="c-lecciones" rows="4" placeholder="¿Qué aprendimos de este análisis que puede aplicarse a otros equipos o plantas?..."></textarea>
+      </div>
+      <div class="concl-section" style="border-left-color:#d97706;">
+        <h3>Próximos Pasos y Seguimiento</h3>
+        <textarea id="c-seguimiento" rows="4" placeholder="Próxima revisión: ____&#10;Indicadores de efectividad: ____&#10;Responsable de seguimiento: ____"></textarea>
+      </div>
+    </div>
+
+    <div style="padding:12px 16px;background:white;border-radius:8px;border-left:4px solid #1e40af;font-size:0.8rem;color:#475569;box-shadow:0 1px 3px rgba(0,0,0,0.07);">
+      <strong style="color:#1e293b;">Nota:</strong> Estas conclusiones se incluirán en la <strong>Hoja 3</strong> al imprimir el informe completo (botón 🖨️ Imprimir A3). Las causas raíces latentes son las que deben generar las acciones correctivas permanentes.
+    </div>
+  </div>
+</div>
+
+<!-- ══ PANEL: TUTORIAL ══ -->
+<div id="panel-tutorial" class="panel" style="display:none; overflow:auto;">
+  <div class="tutorial-panel">
+    <h2>Cómo usar el Árbol de Lógica ACR/RCA</h2>
+    <p class="subtitle">Guía paso a paso basada en la metodología del Curso de Facilitadores ACR/RCA — IEC 62740:2015</p>
+
+    <div class="tutorial-intro">
+      <strong>¿Qué es el Árbol de Lógica?</strong> Es la herramienta central del Análisis Causa Raíz (ACR/RCA). Permite visualizar de forma gráfica la cadena causal que va desde la <em>Definición del Problema</em> hasta las <em>Causas Raíces Latentes</em> (sistémicas/organizacionales). La estructura tiene 6 niveles jerárquicos, cada uno con un tipo de nodo y color específico.
+    </div>
+
+    <div class="tutorial-step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h3>Completa los Datos del Análisis</h3>
+        <p>Ve a la pestaña <strong>"Datos del Análisis"</strong> y completa los campos: equipo, problema, cuándo, dónde, frecuencia e impactos. El campo <em>Definición del Problema (QUÉ)</em> actualizará automáticamente la Caja Superior del árbol.</p>
+      </div>
+    </div>
+
+    <div class="tutorial-step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <h3>La Caja Superior — Definición del Problema</h3>
+        <p>El árbol comienza con la <span class="chip" style="background:#dc2626;color:white;">Caja Superior</span> (nodo rojo en la cima). Responde al <strong>¿QUÉ?</strong> del ACR: qué ocurrió, cuándo, dónde y cuál es el impacto. Haz clic en ella para editarla desde el panel lateral, o actualiza el campo en "Datos del Análisis".</p>
+      </div>
+    </div>
+
+    <div class="tutorial-step">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <h3>Agrega los Modos de Fallo</h3>
+        <p>Haz clic en la Caja Superior → botón <strong>"+ Modo de Fallo"</strong> en el panel lateral. Los <span class="chip" style="background:#16a34a;color:white;">Modos de Fallo</span> (cajas verdes) son las manifestaciones físicas del problema. Se agregan directamente a la cima. Ej: "Eje dañado", "Sello deteriorado", "Rodamiento trabado".</p>
+      </div>
+    </div>
+
+    <div class="tutorial-step">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <h3>Agrega las Hipótesis</h3>
+        <p>Para cada Modo de Fallo, agrega <span class="chip" style="background:#fff;color:#1e40af;border:1.5px solid #3b82f6;">Hipótesis ?</span> (cajas blancas). Son las posibles causas a investigar. Deben validarse con evidencia física. Usa el checkbox <em>"Hipótesis Validada ✓"</em> para confirmarlas, o <em>"Eliminada ×"</em> para descartarlas.</p>
+      </div>
+    </div>
+
+    <div class="tutorial-step">
+      <div class="step-num">5</div>
+      <div class="step-content">
+        <h3>Define las Raíces Físicas</h3>
+        <p>Para cada Hipótesis validada, agrega la <span class="chip" style="background:#dc2626;color:white;">Raíz Física</span> (círculo rojo). Es la falla física directa. Ej: "Grasa solidificada en el rodamiento", "Cojinete fracturado por fatiga". Responde al <em>¿Cómo ocurrió físicamente?</em></p>
+      </div>
+    </div>
+
+    <div class="tutorial-step">
+      <div class="step-num">6</div>
+      <div class="step-content">
+        <h3>Identifica las Raíces Humanas</h3>
+        <p>Para cada Raíz Física, agrega la <span class="chip" style="background:#f97316;color:white;">Raíz Humana</span> (círculo naranja). Es la acción u omisión humana que produjo la raíz física. Ej: "Se ha agregado exceso de grasa", "Grasa mal seleccionada para las condiciones de operación".</p>
+      </div>
+    </div>
+
+    <div class="tutorial-step">
+      <div class="step-num">7</div>
+      <div class="step-content">
+        <h3>Descubre las Raíces Latentes</h3>
+        <p>Para cada Raíz Humana, agrega la <span class="chip" style="background:#7c3aed;color:white;">Raíz Latente</span> (círculo púrpura). Son las causas sistémicas u organizacionales subyacentes. Ej: "No existe procedimiento formal de lubricación", "No hay entrenamiento para el engrasador". <strong>Estas son las verdaderas causas raíces del ACR.</strong></p>
+      </div>
+    </div>
+
+    <div class="tutorial-step">
+      <div class="step-num">8</div>
+      <div class="step-content">
+        <h3>Navega e interactúa con el árbol</h3>
+        <p><strong>Clic</strong> en un nodo → lo selecciona para editar. <strong>Doble clic</strong> → selecciona y enfoca el campo de texto en el panel lateral. <strong>Arrastrar el fondo</strong> → mueve el árbol. <strong>Rueda del mouse</strong> → zoom. Los botones + / − / ⊙ controlan el zoom y la vista.</p>
+      </div>
+    </div>
+
+    <div class="tutorial-step">
+      <div class="step-num">9</div>
+      <div class="step-content">
+        <h3>Exporta y documenta</h3>
+        <p><strong>💾 Guardar</strong> descarga el árbol como JSON para reutilizarlo después con <strong>📂 Cargar</strong>. <strong>📷 PNG</strong> exporta una imagen de alta resolución con el encabezado de datos. <strong>🖨️ Imprimir A3</strong> genera el árbol en formato A3 apaisado. <strong>🗑️ Limpiar</strong> reinicia el árbol.</p>
+      </div>
+    </div>
+
+    <div class="tutorial-tip">
+      <strong>Flujo recomendado (5 pasos del ACR):</strong><br>
+      <strong>Paso 1:</strong> Datos del análisis + Caja Superior (QUÉ). &nbsp;|&nbsp;
+      <strong>Paso 2:</strong> Modos de fallo + Hipótesis (usar árbol de lógica). &nbsp;|&nbsp;
+      <strong>Paso 3:</strong> Validar/eliminar hipótesis con evidencia física. &nbsp;|&nbsp;
+      <strong>Paso 4:</strong> Raíces Físicas → Humanas → Latentes. &nbsp;|&nbsp;
+      <strong>Paso 5:</strong> Proponer soluciones basadas en las raíces latentes (evaluación Costo-Riesgo-Beneficio).
+    </div>
+  </div>
+</div>
+
+</div><!-- /.app-body -->
+
+<!-- ══════════════════════════════════════════════
+     DOCUMENTO DE IMPRESIÓN (oculto en pantalla)
+     Se popula dinámicamente antes de imprimir
+══════════════════════════════════════════════ -->
+<div id="print-document"></div>
+
+<script>
+// ═══════════════════════════════════════════
+// CONSTANTES Y CONFIGURACIÓN
+// ═══════════════════════════════════════════
+const TYPES = {
+  problema: {
+    label: 'Problema (Caja Superior)',
+    color: '#dc2626', textColor: '#fff', borderColor: '#991b1b',
+    shape: 'rect', children: ['modo_fallo'], childLabel: '+ Modo de Fallo'
+  },
+  modo_fallo: {
+    label: 'Modo de Fallo',
+    color: '#16a34a', textColor: '#fff', borderColor: '#14532d',
+    shape: 'rect', children: ['hipotesis'], childLabel: '+ Hipótesis'
+  },
+  hipotesis: {
+    label: 'Hipótesis',
+    color: '#ffffff', textColor: '#1e40af', borderColor: '#3b82f6',
+    shape: 'rect', children: ['raiz_fisica'], childLabel: '+ Raíz Física'
+  },
+  raiz_fisica: {
+    label: 'Raíz Física',
+    color: '#dc2626', textColor: '#fff', borderColor: '#991b1b',
+    shape: 'circle', children: ['raiz_humana'], childLabel: '+ Raíz Humana'
+  },
+  raiz_humana: {
+    label: 'Raíz Humana',
+    color: '#f97316', textColor: '#fff', borderColor: '#c2410c',
+    shape: 'circle', children: ['raiz_latente'], childLabel: '+ Raíz Latente'
+  },
+  raiz_latente: {
+    label: 'Raíz Latente',
+    color: '#7c3aed', textColor: '#fff', borderColor: '#4c1d95',
+    shape: 'circle', children: [], childLabel: null
+  }
+};
+
+const RW = 155, RH = 64;   // rect width/height
+const CR = 42;              // circle radius
+const H_GAP = 44;           // horizontal gap between subtrees
+const LEVEL_Y = [50, 192, 340, 490, 638, 784]; // Y per level
+
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+let nodes = {}, rootId = null, nodeCounter = 0, selectedId = null;
+let vx = 0, vy = 20, vs = 1;
+let panning = false, px0 = 0, py0 = 0;
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+function init() {
+  document.getElementById('d-fecha').value = new Date().toISOString().slice(0,10);
+  rootId = createNode('problema', 'Fallo / Problema a analizar\n(completar en Datos del Análisis)');
+  render();
+  setupPanZoom();
+}
+
+function createNode(type, text, parentId = null) {
+  const id = 'n' + (++nodeCounter);
+  nodes[id] = { id, type, text: text || 'Nuevo ' + TYPES[type].label,
+                 children: [], parentId, eliminated: false, validated: false };
+  if (parentId && nodes[parentId]) nodes[parentId].children.push(id);
+  return id;
+}
+
+// ═══════════════════════════════════════════
+// LAYOUT ENGINE
+// ═══════════════════════════════════════════
+function nw(type) { return TYPES[type].shape === 'circle' ? CR*2 : RW; }
+function nh(type) { return TYPES[type].shape === 'circle' ? CR*2 : RH; }
+
+function subtreeW(id) {
+  const n = nodes[id]; if (!n) return 0;
+  const ownW = nw(n.type) + H_GAP;          // mínimo: ancho del nodo + gap
+  if (!n.children.length) return ownW;
+  const childrenW = n.children.reduce((s, c) => s + subtreeW(c), 0);
+  return Math.max(ownW, childrenW);          // nunca menor que el propio nodo
+}
+
+function layout(id, x, level) {
+  const n = nodes[id]; if (!n) return;
+  const sw = subtreeW(id);
+  n.x = x + (sw - nw(n.type)) / 2;
+  n.y = LEVEL_Y[Math.min(level, LEVEL_Y.length - 1)];
+  let cx = x;
+  for (const c of n.children) { layout(c, cx, level + 1); cx += subtreeW(c); }
+}
+
+// ═══════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════
+const NS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k,v] of Object.entries(attrs)) e.setAttribute(k, v);
+  return e;
+}
+
+function render() {
+  if (!rootId) return;
+  const totalW = Math.max(subtreeW(rootId), 700);
+  layout(rootId, (totalW - subtreeW(rootId)) / 2, 0);
+
+  document.getElementById('lines-g').innerHTML = '';
+  document.getElementById('nodes-g').innerHTML = '';
+
+  drawLines(rootId);
+  drawNodes(rootId);
+
+  const maxY = Object.values(nodes).reduce((m,n) => Math.max(m, n.y + nh(n.type) + 50), 100);
+  const svg = document.getElementById('tree-svg');
+  svg.setAttribute('viewBox', `0 0 ${Math.max(totalW, 800)} ${maxY}`);
+}
+
+function drawLines(id) {
+  const n = nodes[id]; if (!n) return;
+  const linesG = document.getElementById('lines-g');
+  const x1 = n.x + nw(n.type) / 2;
+  const y1 = n.y + nh(n.type);
+  for (const cid of n.children) {
+    const c = nodes[cid]; if (!c) continue;
+    const x2 = c.x + nw(c.type) / 2;
+    const y2 = c.y;
+    const my = (y1 + y2) / 2;
+    const path = el('path', {
+      d: `M${x1},${y1} C${x1},${my} ${x2},${my} ${x2},${y2}`,
+      fill: 'none', stroke: '#94a3b8', 'stroke-width': '2',
+      'stroke-linecap': 'round'
+    });
+    linesG.appendChild(path);
+    drawLines(cid);
+  }
+}
+
+function drawNodes(id) {
+  const n = nodes[id]; if (!n) return;
+  const cfg = TYPES[n.type];
+  const isSel = selectedId === n.id;
+  const nodesG = document.getElementById('nodes-g');
+
+  const g = el('g', { cursor: 'pointer', 'data-id': n.id });
+  g.addEventListener('click', () => selectNode(n.id));
+  g.addEventListener('dblclick', () => { selectNode(n.id); focusSidebarText(); });
+
+  const W = nw(n.type), H = nh(n.type);
+
+  if (cfg.shape === 'rect') {
+    // Shadow
+    g.appendChild(el('rect', { x: n.x+2, y: n.y+3, width: W, height: H, rx: 8,
+      fill: 'rgba(0,0,0,0.12)' }));
+    // Body
+    g.appendChild(el('rect', { x: n.x, y: n.y, width: W, height: H, rx: 8,
+      fill: n.eliminated ? '#e2e8f0' : cfg.color,
+      stroke: isSel ? '#fbbf24' : cfg.borderColor,
+      'stroke-width': isSel ? 3 : 1.5 }));
+
+    // Hypothesis indicator
+    if (n.type === 'hipotesis') {
+      const ic = el('text', { x: n.x+W-12, y: n.y+15,
+        'font-size': 15, 'font-weight': 'bold',
+        fill: n.validated ? '#16a34a' : '#f97316',
+        'pointer-events': 'none', 'text-anchor': 'middle',
+        'dominant-baseline': 'middle' });
+      ic.textContent = n.validated ? '✓' : '?';
+      g.appendChild(ic);
+    }
+
+    // Eliminated cross
+    if (n.eliminated) {
+      g.appendChild(el('line', { x1: n.x+10, y1: n.y+10, x2: n.x+W-10, y2: n.y+H-10,
+        stroke: '#dc2626', 'stroke-width': 3, 'stroke-linecap': 'round' }));
+      g.appendChild(el('line', { x1: n.x+W-10, y1: n.y+10, x2: n.x+10, y2: n.y+H-10,
+        stroke: '#dc2626', 'stroke-width': 3, 'stroke-linecap': 'round' }));
+    }
+
+    addText(g, n.text, n.x+W/2, n.y+H/2, W-18,
+            n.eliminated ? '#94a3b8' : cfg.textColor, 10.5);
+
+  } else {
+    // Circle
+    const cx = n.x + CR, cy = n.y + CR;
+    g.appendChild(el('circle', { cx: cx+2, cy: cy+3, r: CR, fill: 'rgba(0,0,0,0.12)' }));
+    g.appendChild(el('circle', { cx, cy, r: CR,
+      fill: n.eliminated ? '#e2e8f0' : cfg.color,
+      stroke: isSel ? '#fbbf24' : cfg.borderColor,
+      'stroke-width': isSel ? 3 : 1.5 }));
+
+    if (n.eliminated) {
+      const d = CR * 0.6;
+      g.appendChild(el('line', { x1: cx-d, y1: cy-d, x2: cx+d, y2: cy+d,
+        stroke: '#dc2626', 'stroke-width': 3, 'stroke-linecap': 'round' }));
+      g.appendChild(el('line', { x1: cx+d, y1: cy-d, x2: cx-d, y2: cy+d,
+        stroke: '#dc2626', 'stroke-width': 3, 'stroke-linecap': 'round' }));
+    }
+
+    addText(g, n.text, cx, cy, CR*1.65, n.eliminated ? '#94a3b8' : cfg.textColor, 9.5);
+  }
+
+  // Selection ring
+  if (isSel) {
+    const ring = el('rect', {
+      x: n.x-4, y: n.y-4, width: W+8, height: H+8,
+      rx: cfg.shape === 'circle' ? (CR+4) : 11,
+      fill: 'none', stroke: '#fbbf24', 'stroke-width': 2,
+      'stroke-dasharray': '5,3', 'pointer-events': 'none'
+    });
+    g.appendChild(ring);
+  }
+
+  nodesG.appendChild(g);
+  for (const cid of n.children) drawNodes(cid);
+}
+
+function addText(g, text, cx, cy, maxW, color, size) {
+  const chW = size * 0.55;
+  const maxC = Math.max(1, Math.floor(maxW / chW));
+  const raw = text.replace(/\n/g, ' ');
+  const words = raw.split(/\s+/);
+  const lines = [];
+  let cur = '';
+  for (const w of words) {
+    const trial = cur ? cur + ' ' + w : w;
+    if (trial.length <= maxC) { cur = trial; }
+    else { if (cur) lines.push(cur); cur = w; }
+  }
+  if (cur) lines.push(cur);
+  const L = Math.min(lines.length, 4);
+  const lh = size + 2.5;
+  const startY = cy - (L * lh) / 2 + lh / 2;
+  for (let i = 0; i < L; i++) {
+    let lineText = lines[i];
+    if (i === 3 && lines.length > 4) lineText = lineText.slice(0,-1) + '…';
+    const t = el('text', {
+      x: cx, y: startY + i * lh,
+      'text-anchor': 'middle', 'dominant-baseline': 'middle',
+      'font-size': size, 'font-weight': '600',
+      'font-family': 'Segoe UI,system-ui,sans-serif',
+      fill: color, 'pointer-events': 'none'
+    });
+    t.textContent = lineText;
+    g.appendChild(t);
+  }
+}
+
+// ═══════════════════════════════════════════
+// SELECTION & SIDEBAR
+// ═══════════════════════════════════════════
+function selectNode(id) {
+  selectedId = id;
+  updateSidebar();
+  render();
+}
+
+function focusSidebarText() {
+  const ta = document.getElementById('sb-text');
+  ta.focus(); ta.select();
+}
+
+function updateSidebar() {
+  const n = nodes[selectedId];
+  document.getElementById('sb-empty').style.display = n ? 'none' : 'block';
+  document.getElementById('sb-content').style.display = n ? 'block' : 'none';
+  if (!n) return;
+
+  const cfg = TYPES[n.type];
+  const badge = document.getElementById('sb-badge');
+  badge.textContent = cfg.label;
+  badge.style.background = cfg.color;
+  badge.style.color = cfg.textColor;
+  badge.style.border = n.type === 'hipotesis' ? '1.5px solid #3b82f6' : 'none';
+
+  document.getElementById('sb-text').value = n.text;
+  document.getElementById('sb-eliminated').checked = n.eliminated;
+
+  const vRow = document.getElementById('sb-validated-row');
+  vRow.style.display = n.type === 'hipotesis' ? 'block' : 'none';
+  if (n.type === 'hipotesis') document.getElementById('sb-validated').checked = n.validated;
+
+  // Action buttons
+  const acts = document.getElementById('sb-actions');
+  acts.innerHTML = '';
+
+  for (const childType of cfg.children) {
+    const chCfg = TYPES[childType];
+    const btn = document.createElement('button');
+    btn.className = 'action-btn';
+    btn.style.background = chCfg.color;
+    btn.style.color = chCfg.textColor;
+    btn.style.border = childType === 'hipotesis' ? '1.5px solid #3b82f6' : 'none';
+    btn.textContent = cfg.childLabel;
+    btn.onclick = () => addChild(childType);
+    acts.appendChild(btn);
+  }
+
+  if (n.id !== rootId) {
+    const hr = document.createElement('hr');
+    hr.className = 'sidebar-divider';
+    acts.appendChild(hr);
+    const del = document.createElement('button');
+    del.className = 'action-btn';
+    del.style.background = '#dc2626'; del.style.color = '#fff';
+    del.textContent = '🗑️ Eliminar nodo y descendientes';
+    del.onclick = () => deleteNode(selectedId);
+    acts.appendChild(del);
+  }
+}
+
+function updateNodeText() {
+  if (!selectedId || !nodes[selectedId]) return;
+  nodes[selectedId].text = document.getElementById('sb-text').value;
+  render();
+}
+
+function toggleEliminated() {
+  if (!selectedId || !nodes[selectedId]) return;
+  nodes[selectedId].eliminated = document.getElementById('sb-eliminated').checked;
+  render();
+}
+
+function toggleValidated() {
+  if (!selectedId || !nodes[selectedId]) return;
+  nodes[selectedId].validated = document.getElementById('sb-validated').checked;
+  render();
+}
+
+function addChild(type) {
+  if (!selectedId) return;
+  const id = createNode(type, '', selectedId);
+  selectedId = id;
+  updateSidebar();
+  render();
+  showStatus('Nodo agregado. Edita el texto en el panel lateral.');
+}
+
+function deleteNode(id) {
+  if (!id || id === rootId) return;
+  const n = nodes[id];
+  if (n.children.length > 0) {
+    if (!confirm(`¿Eliminar este nodo y sus ${countDescendants(id)} descendiente(s)?`)) return;
+  }
+  if (n.parentId && nodes[n.parentId])
+    nodes[n.parentId].children = nodes[n.parentId].children.filter(c => c !== id);
+  deleteSubtree(id);
+  selectedId = null;
+  updateSidebar();
+  render();
+  showStatus('Nodo eliminado.');
+}
+
+function deleteSubtree(id) {
+  const n = nodes[id]; if (!n) return;
+  for (const c of [...n.children]) deleteSubtree(c);
+  delete nodes[id];
+}
+
+function countDescendants(id) {
+  const n = nodes[id]; if (!n) return 0;
+  return n.children.reduce((s, c) => s + 1 + countDescendants(c), 0);
+}
+
+// ═══════════════════════════════════════════
+// PAN / ZOOM
+// ═══════════════════════════════════════════
+function setupPanZoom() {
+  const svg = document.getElementById('tree-svg');
+  svg.addEventListener('mousedown', e => {
+    if (e.target.closest('[data-id]')) return;
+    panning = true; px0 = e.clientX - vx; py0 = e.clientY - vy;
+  });
+  svg.addEventListener('mousemove', e => {
+    if (!panning) return;
+    vx = e.clientX - px0; vy = e.clientY - py0;
+    applyTransform();
+  });
+  svg.addEventListener('mouseup', () => panning = false);
+  svg.addEventListener('mouseleave', () => panning = false);
+  svg.addEventListener('wheel', e => {
+    e.preventDefault();
+    const d = e.deltaY > 0 ? -0.09 : 0.09;
+    vs = Math.min(2.5, Math.max(0.25, vs + d));
+    applyTransform();
+  }, { passive: false });
+}
+
+function applyTransform() {
+  document.getElementById('root-g').setAttribute('transform', `translate(${vx},${vy}) scale(${vs})`);
+}
+
+function zoom(d) { vs = Math.min(2.5, Math.max(0.25, vs + d)); applyTransform(); }
+function resetView() { vx = 0; vy = 20; vs = 1; applyTransform(); }
+
+// ═══════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════
+function showTab(tab, btn) {
+  document.querySelectorAll('.panel').forEach(p => { p.classList.remove('active'); p.style.display = 'none'; });
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  const panel = document.getElementById('panel-' + tab);
+  // conclusiones y tutorial son scroll, no flex column
+  panel.style.display = (tab === 'conclusiones' || tab === 'tutorial') ? 'block' : 'flex';
+  panel.classList.add('active');
+  btn.classList.add('active');
+  if (tab === 'arbol') setTimeout(() => render(), 30);
+}
+
+// ═══════════════════════════════════════════
+// SYNC PROBLEM TEXT
+// ═══════════════════════════════════════════
+function updateProblemNode() {
+  if (!rootId || !nodes[rootId]) return;
+  const v = document.getElementById('d-problema').value.trim();
+  if (v) { nodes[rootId].text = v; render(); }
+}
+
+// ═══════════════════════════════════════════
+// SAVE / LOAD JSON
+// ═══════════════════════════════════════════
+function getForm() {
+  const ids = ['sistema','ref','problema','cuando','donde','frecuencia','imp-seg','imp-prod','imp-mant','elaborado','revisado','fecha','rev'];
+  return Object.fromEntries(ids.map(k => [k, document.getElementById('d-'+k).value]));
+}
+
+function setForm(d) {
+  if (!d) return;
+  const ids = ['sistema','ref','problema','cuando','donde','frecuencia','imp-seg','imp-prod','imp-mant','elaborado','revisado','fecha','rev'];
+  for (const k of ids) if (document.getElementById('d-'+k)) document.getElementById('d-'+k).value = d[k] || '';
+}
+
+function saveJSON() {
+  const data = { version: 2, form: getForm(), nodes, rootId, nodeCounter };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `Arbol-Logica-${document.getElementById('d-ref').value || 'ACR'}.json`;
+  a.click(); URL.revokeObjectURL(url);
+  showStatus('Árbol guardado como JSON.');
+}
+
+function triggerLoad() { document.getElementById('file-input').click(); }
+
+function loadJSON(e) {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    try {
+      const d = JSON.parse(ev.target.result);
+      if (!d.nodes || !d.rootId) throw new Error('Formato inválido');
+      nodes = d.nodes; rootId = d.rootId; nodeCounter = d.nodeCounter || 0;
+      setForm(d.form);
+      selectedId = null; updateSidebar(); render();
+      showStatus('Árbol cargado correctamente.');
+    } catch(err) { alert('Error al leer el archivo JSON: ' + err.message); }
+  };
+  r.readAsText(f); e.target.value = '';
+}
+
+// ═══════════════════════════════════════════
+// EXPORT PNG
+// ═══════════════════════════════════════════
+function exportPNG() {
+  const svgEl = document.getElementById('tree-svg');
+  const g = document.getElementById('root-g');
+  const savedT = g.getAttribute('transform');
+  g.setAttribute('transform', 'translate(0,20) scale(1)');
+
+  const vbParts = svgEl.getAttribute('viewBox').split(' ').map(Number);
+  const W = vbParts[2], H = vbParts[3];
+  const HEADER_H = 110;
+  const SCALE = 2;
+
+  const svgStr = new XMLSerializer().serializeToString(svgEl);
+  g.setAttribute('transform', savedT);
+
+  const canvas = document.createElement('canvas');
+  canvas.width  = W * SCALE;
+  canvas.height = (H + HEADER_H) * SCALE;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(SCALE, SCALE);
+
+  // Background
+  ctx.fillStyle = '#f1f5f9'; ctx.fillRect(0, 0, W, H + HEADER_H);
+
+  // Header
+  const grad = ctx.createLinearGradient(0, 0, W, 0);
+  grad.addColorStop(0, '#1e3a8a'); grad.addColorStop(1, '#1e40af');
+  ctx.fillStyle = grad; ctx.fillRect(0, 0, W, HEADER_H);
+
+  ctx.fillStyle = 'white';
+  ctx.font = 'bold 16px Segoe UI, sans-serif';
+  ctx.fillText('ÁRBOL DE LÓGICA — ANÁLISIS CAUSA RAÍZ (ACR/RCA)', 20, 30);
+
+  const fd = getForm();
+  ctx.font = '11px Segoe UI, sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.fillText(`Sistema/Equipo: ${fd['sistema'] || '—'}`, 20, 52);
+  ctx.fillText(`Ref.: ${fd['ref'] || '—'}  |  Rev.: ${fd['rev'] || 'Rev. 0'}  |  Fecha: ${fd['fecha'] || '—'}`, 20, 68);
+  ctx.fillText(`¿Qué?: ${fd['problema'] || '—'}`, 20, 84);
+  ctx.fillText(`Elaborado: ${fd['elaborado'] || '—'}  |  Revisado: ${fd['revisado'] || '—'}`, 20, 100);
+
+  const blob = new Blob([svgStr], { type: 'image/svg+xml' });
+  const url = URL.createObjectURL(blob);
+  const img = new Image();
+  img.onload = () => {
+    ctx.drawImage(img, 0, HEADER_H, W, H);
+    URL.revokeObjectURL(url);
+    const link = document.createElement('a');
+    link.download = `Arbol-Logica-${fd['ref'] || 'ACR'}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    showStatus('PNG exportado.');
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); alert('Error al generar PNG. Intente imprimir desde el navegador.'); };
+  img.src = url;
+}
+
+// ═══════════════════════════════════════════
+// PRINT — 3 páginas
+// ═══════════════════════════════════════════
+function printTree() {
+  const fd = getForm();
+  const today = fd['fecha'] || new Date().toISOString().slice(0,10);
+
+  // Asegurar que el árbol está renderizado sin pan/zoom
+  const g = document.getElementById('root-g');
+  const savedT = g.getAttribute('transform');
+  g.setAttribute('transform', 'translate(0,20) scale(1)');
+  render();
+  const svgEl = document.getElementById('tree-svg');
+  const svgStr = new XMLSerializer().serializeToString(svgEl);
+  g.setAttribute('transform', savedT);
+
+  // ── Helpers ──
+  const field = (label, val, cls='') =>
+    `<div class="print-field ${cls}"><label>${label}</label><span>${val || '—'}</span></div>`;
+
+  const box = (label, id, cls='print-concl-box') =>
+    `<div class="${cls}"><h4>${label}</h4><p>${(document.getElementById(id)||{}).value || '—'}</p></div>`;
+
+  // Extraer causas raíces del árbol
+  const roots = { fisica: [], humana: [], latente: [] };
+  for (const [,n] of Object.entries(nodes)) {
+    if (!n.eliminated) {
+      if (n.type === 'raiz_fisica')  roots.fisica.push(n.text);
+      if (n.type === 'raiz_humana')  roots.humana.push(n.text);
+      if (n.type === 'raiz_latente') roots.latente.push(n.text);
+    }
+  }
+
+  const causasRows = () => {
+    const all = [
+      ...roots.fisica.map(t  => ['fisica',  t]),
+      ...roots.humana.map(t  => ['humana',  t]),
+      ...roots.latente.map(t => ['latente', t])
+    ];
+    if (!all.length) return '<tr><td colspan="3" style="color:#94a3b8;font-style:italic">Sin causas raíces definidas en el árbol</td></tr>';
+    return all.map(([tipo, txt], i) => {
+      const labels = { fisica:'Raíz Física', humana:'Raíz Humana', latente:'Raíz Latente' };
+      return `<tr><td>${i+1}</td><td><span class="dot-${tipo}"></span> ${labels[tipo]}</td><td>${txt}</td></tr>`;
+    }).join('');
+  };
+
+  const headerHtml = `
+    <div class="print-header" style="background:#1e3a8a;color:white;padding:18px 24px;margin-bottom:20px;border-radius:8px;">
+      <h1 style="font-size:15pt;margin:0 0 4px;">Árbol de Lógica — Análisis Causa Raíz (ACR/RCA)</h1>
+      <p style="font-size:9pt;margin:0;opacity:0.8;">
+        ${fd['sistema'] || 'Sistema/Equipo no especificado'} &nbsp;|&nbsp;
+        Ref.: ${fd['ref'] || '—'} &nbsp;|&nbsp; ${fd['rev'] || 'Rev. 0'} &nbsp;|&nbsp;
+        Elaborado: ${fd['elaborado'] || '—'} &nbsp;|&nbsp; Revisado: ${fd['revisado'] || '—'} &nbsp;|&nbsp; ${today}
+      </p>
+    </div>`;
+
+  const doc = `
+<!-- ══ PÁGINA 1: DATOS ══ -->
+<div class="print-page">
+  ${headerHtml}
+  <div class="print-section-title">Hoja 1 de 3 — Datos del Análisis</div>
+
+  <div class="print-datos-grid">
+    ${field('Sistema / Equipo', fd['sistema'], 'span2')}
+    ${field('Ref. Documento', fd['ref'])}
+    ${field('Definición del Problema — QUÉ ocurrió', fd['problema'], 'span3')}
+    ${field('¿Cuándo?', fd['cuando'])}
+    ${field('¿Dónde?', fd['donde'])}
+    ${field('Frecuencia', fd['frecuencia'])}
+    ${field('Impacto — Seguridad', fd['imp-seg'])}
+    ${field('Impacto — Producción', fd['imp-prod'])}
+    ${field('Impacto — Mantenimiento', fd['imp-mant'])}
+  </div>
+
+  <div class="print-section-title" style="margin-top:20px;">Causas Raíces identificadas en el Árbol de Lógica</div>
+  <table class="print-causes-table">
+    <thead><tr><th>#</th><th>Tipo de Causa Raíz</th><th>Descripción</th></tr></thead>
+    <tbody>${causasRows()}</tbody>
+  </table>
+
+  <div class="print-sign-grid">
+    <div class="print-sign-box">
+      <div class="label">Elaborado Por</div>
+      <div class="name">${fd['elaborado'] || '________________________'}</div>
+    </div>
+    <div class="print-sign-box">
+      <div class="label">Revisado Por</div>
+      <div class="name">${fd['revisado'] || '________________________'}</div>
+    </div>
+    <div class="print-sign-box">
+      <div class="label">Fecha</div>
+      <div class="name">${today}</div>
+    </div>
+  </div>
+  <div class="print-footer">
+    <span>${fd['sistema'] || ''} — ${fd['ref'] || ''} — ${fd['rev'] || 'Rev. 0'}</span>
+    <span>Análisis Causa Raíz (ACR/RCA) — IEC 62740:2015</span>
+  </div>
+</div>
+
+<!-- ══ PÁGINA 2: ÁRBOL ══ -->
+<div class="print-page">
+  ${headerHtml}
+  <div class="print-section-title">Hoja 2 de 3 — Árbol de Lógica</div>
+  <div class="print-svg-container">
+    ${svgStr}
+  </div>
+  <div class="print-footer">
+    <span>${fd['sistema'] || ''} — ${fd['ref'] || ''} — ${fd['rev'] || 'Rev. 0'}</span>
+    <span>Árbol de Lógica ACR/RCA — IEC 62740:2015</span>
+  </div>
+</div>
+
+<!-- ══ PÁGINA 3: CONCLUSIONES ══ -->
+<div class="print-page">
+  ${headerHtml}
+  <div class="print-section-title">Hoja 3 de 3 — Conclusiones y Recomendaciones</div>
+
+  ${box('Resumen del Problema', 'c-resumen', 'print-concl-full')}
+
+  <div class="print-concl-grid">
+    ${box('Causas Raíces Físicas', 'c-raices-fisicas')}
+    ${box('Causas Raíces Humanas', 'c-raices-humanas')}
+  </div>
+
+  ${box('Causas Raíces Latentes — Las verdaderas causas raíz (sistémicas/organizacionales)', 'c-raices-latentes', 'print-concl-full')}
+  ${box('Recomendaciones y Plan de Acción', 'c-recomendaciones', 'print-concl-full')}
+
+  <div class="print-concl-grid">
+    ${box('Lecciones Aprendidas', 'c-lecciones')}
+    ${box('Próximos Pasos y Seguimiento', 'c-seguimiento')}
+  </div>
+
+  <div class="print-sign-grid">
+    <div class="print-sign-box">
+      <div class="label">Elaborado Por</div>
+      <div class="name">${fd['elaborado'] || '________________________'}</div>
+    </div>
+    <div class="print-sign-box">
+      <div class="label">Revisado Por</div>
+      <div class="name">${fd['revisado'] || '________________________'}</div>
+    </div>
+    <div class="print-sign-box">
+      <div class="label">Fecha</div>
+      <div class="name">${today}</div>
+    </div>
+  </div>
+  <div class="print-footer">
+    <span>${fd['sistema'] || ''} — ${fd['ref'] || ''} — ${fd['rev'] || 'Rev. 0'}</span>
+    <span>Análisis Causa Raíz (ACR/RCA) — IEC 62740:2015</span>
+  </div>
+</div>`;
+
+  document.getElementById('print-document').innerHTML = doc;
+  setTimeout(() => {
+    window.print();
+    // Limpiar después de imprimir
+    setTimeout(() => document.getElementById('print-document').innerHTML = '', 1000);
+  }, 200);
+}
+
+// ═══════════════════════════════════════════
+// CLEAR
+// ═══════════════════════════════════════════
+function clearAll() {
+  if (!confirm('¿Reiniciar el árbol? Esta acción no se puede deshacer.')) return;
+  nodes = {}; nodeCounter = 0; selectedId = null;
+  rootId = createNode('problema', 'Fallo / Problema a analizar\n(completar en Datos del Análisis)');
+  updateSidebar(); render();
+  showStatus('Árbol reiniciado.');
+}
+
+// ═══════════════════════════════════════════
+// STATUS
+// ═══════════════════════════════════════════
+let statusTimer;
+function showStatus(msg) {
+  const b = document.getElementById('status-bar');
+  b.textContent = msg; b.style.opacity = '1';
+  clearTimeout(statusTimer);
+  statusTimer = setTimeout(() => b.style.opacity = '0', 3200);
+}
+
+// ─── ARRANQUE ───
+init();
+</script>
+</body>
+</html>
